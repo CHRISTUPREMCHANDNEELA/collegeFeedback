@@ -1,9 +1,8 @@
-name: Deploy to EC2
+name: Deploy Flask App to EC2
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   deploy:
@@ -13,29 +12,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Run deployment script on EC2
-        uses: appleboy/ssh-action@v0.1.7
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
-          script: |
-            # Create app directory if it doesn't exist
-            mkdir -p ~/app
-            
-            # Install docker-compose if not installed
-            if ! command -v docker-compose &> /dev/null
-            then
-              echo "docker-compose not found, installing..."
-              sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-              sudo chmod +x /usr/local/bin/docker-compose
-            else
-              echo "docker-compose is already installed"
-            fi
+          python-version: "3.9"
 
-            # Move to app directory and deploy
-            cd ~/app
-            docker-compose down || true
-            docker-compose build
-            docker-compose up -d
+      - name: Install Ansible
+        run: |
+          sudo apt update
+          sudo apt install -y ansible
+
+      - name: Set up SSH key as CollegeFeedback.pem
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/CollegeFeedback.pem
+          chmod 400 ~/.ssh/CollegeFeedback.pem
+
+      - name: Add EC2 to known_hosts
+        run: |
+          ssh-keyscan -H 13.60.6.132 >> ~/.ssh/known_hosts
+
+      - name: Run Ansible Playbook
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: False
+        run: |
+          ansible-playbook -i ansible/hosts.ini ansible/deploy-app.yml
