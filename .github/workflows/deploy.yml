@@ -1,4 +1,4 @@
-name: Deploy Docker App
+name: Deploy to EC2
 
 on:
   push:
@@ -10,23 +10,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up SSH
-      uses: webfactory/ssh-agent@v0.5.4
-      with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Run deployment script on EC2
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            # Create app directory if it doesn't exist
+            mkdir -p ~/app
+            
+            # Install docker-compose if not installed
+            if ! command -v docker-compose &> /dev/null
+            then
+              echo "docker-compose not found, installing..."
+              sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              sudo chmod +x /usr/local/bin/docker-compose
+            else
+              echo "docker-compose is already installed"
+            fi
 
-    - name: Deploy to EC2 server
-      uses: appleboy/ssh-action@v0.1.7
-      with:
-        host: 13.60.6.132
-        username: ubuntu
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        port: 22
-        script: |
-          cd ~/app
-          docker-compose down
-          docker-compose build
-          docker-compose up -d
+            # Move to app directory and deploy
+            cd ~/app
+            docker-compose down || true
+            docker-compose build
+            docker-compose up -d
