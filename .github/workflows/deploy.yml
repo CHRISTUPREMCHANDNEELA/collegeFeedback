@@ -2,7 +2,7 @@ name: Deploy Flask App to EC2
 
 on:
   push:
-    branches: [main]
+    branches: [main]  # or master, depending on your default branch
 
 jobs:
   deploy:
@@ -15,7 +15,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.9"
+          python-version: '3.9'
 
       - name: Install Ansible
         run: |
@@ -28,12 +28,10 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/CollegeFeedback.pem
           chmod 400 ~/.ssh/CollegeFeedback.pem
 
-      - name: Add EC2 to known_hosts
+      - name: Add EC2 IP to known_hosts
         run: |
           ssh-keyscan -H 13.60.6.132 >> ~/.ssh/known_hosts
 
       - name: Run Ansible Playbook
-        env:
-          ANSIBLE_HOST_KEY_CHECKING: False
         run: |
           ansible-playbook -i ansible/hosts.ini ansible/deploy-app.yml
