@@ -22,14 +22,11 @@ jobs:
           sudo apt update
           sudo apt install -y ansible
 
-      - name: Set up SSH key for Ansible
+      - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/CollegeFeedback.pem
-          chmod 400 ~/CollegeFeedback.pem
-
-      - name: Add EC2 to known_hosts
-        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/CollegeFeedback.pem
+          chmod 400 ~/.ssh/CollegeFeedback.pem
           ssh-keyscan -H 13.60.6.132 >> ~/.ssh/known_hosts
 
       - name: Run Ansible Playbook
