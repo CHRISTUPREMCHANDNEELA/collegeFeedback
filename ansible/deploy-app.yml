@@ -1,30 +1,30 @@
 ---
 - name: Deploy Flask App with Docker
-  hosts: web
+  hosts: all
   become: true
+
   tasks:
-    - name: Install Docker
-      apt:
-        name: docker.io
-        state: present
-        update_cache: true
+    - name: Create app directory on EC2
+      file:
+        path: ~/app
+        state: directory
+        mode: '0755'
 
-    - name: Install Docker Compose
+    - name: Copy app files to EC2 (including Dockerfile, app.py, templates, and docker-compose.yml)
+      copy:
+        src: ../app/
+        dest: ~/app/
+        mode: '0755'
+
+    - name: Remove old Docker container if running
       shell: |
-        curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-        chmod +x /usr/local/bin/docker-compose
-      args:
-        creates: /usr/local/bin/docker-compose
+        docker rm -f flask-app || true
 
-    - name: Clone or update app
-      ansible.builtin.git:
-        repo: 'https://github.com/CHRISTUPREMCHANDNEELA/collegeFeedback.git'
-        dest: /home/ubuntu/app
-        force: yes
-
-    - name: Deploy Docker containers
+    - name: Build Docker image
       shell: |
-        cd /home/ubuntu/app
-        docker-compose down || true
-        docker-compose build
-        docker-compose up -d
+        cd ~/app
+        docker build -t flask-app .
+
+    - name: Run Docker container
+      shell: |
+        docker run -d --name flask-app -p 5000:5000 flask-app
