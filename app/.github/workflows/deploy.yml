@@ -33,7 +33,7 @@ jobs:
             rm -rf *
             git clone https://github.com/CHRISTUPREMCHANDNEELA/collegeFeedback.git tmp
             cp -r tmp/app/* .
-            cp tmp/docker-compose.yml .
+            cp tmp/docker-compose.yml .      # ✅ COPY docker-compose.yml into ~/app
             rm -rf tmp
             docker-compose down || true
             docker-compose build
