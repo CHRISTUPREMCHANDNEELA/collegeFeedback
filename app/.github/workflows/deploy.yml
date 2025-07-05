@@ -1,0 +1,39 @@
+name: Deploy Flask App to EC2
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: SSH and deploy
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: 13.60.6.132
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            sudo apt update
+            sudo apt install -y docker.io
+
+            if ! command -v docker-compose &> /dev/null
+            then
+              echo "Installing docker-compose..."
+              sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              sudo chmod +x /usr/local/bin/docker-compose
+            fi
+
+            mkdir -p ~/app
+            cd ~/app
+            rm -rf *
+            git clone https://github.com/CHRISTUPREMCHANDNEELA/collegeFeedback.git tmp
+            cp -r tmp/app/* .
+            rm -rf tmp
+            docker-compose down || true
+            docker-compose build
+            docker-compose up -d
